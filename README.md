@@ -1,8 +1,8 @@
-# **Alpaca-RLHF-PyTorch**
+# **Alpaca-LoRA-RLHF-PyTorch**
 
 ---
 ## **Table of Contents**
-- [**Alpaca-RLHF-PyTorch**](#alpaca-rlhf-pytorch)
+- [**Alpaca-LoRA-RLHF-PyTorch**](#alpaca-lora-rlhf-pytorch)
   - [**Table of Contents**](#table-of-contents)
   - [**Environment Setup**](#environment-setup)
   - [**Run**](#run)

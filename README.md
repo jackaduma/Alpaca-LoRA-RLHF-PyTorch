@@ -5,6 +5,7 @@
 - [**Alpaca-LoRA-RLHF-PyTorch**](#alpaca-lora-rlhf-pytorch)
   - [**Table of Contents**](#table-of-contents)
   - [**Environment Setup**](#environment-setup)
+  - [**Todo List**](#todo-list)
   - [**Run**](#run)
     - [**Supervised Finetune**](#supervised-finetune)
     - [**Merge PEFT adapter into Model**](#merge-peft-adapter-into-model)
@@ -21,7 +22,7 @@ cuda==11.8
 ```
 
 ---
-
+## **Todo List**
 - [x] SFT: Supervised Finetune
 - [x] Merge Adapter into Model
 - [ ] RLHF

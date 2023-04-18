@@ -16,8 +16,8 @@
 ## **Environment Setup**
 ```
 穷人卡：2080Ti 12G
-torch2.0.0
-cuda11.8
+torch==2.0.0
+cuda==11.8
 ```
 
 ---

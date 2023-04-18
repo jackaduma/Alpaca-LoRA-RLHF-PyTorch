@@ -32,21 +32,28 @@ cuda11.8
 ### **Supervised Finetune**
 
 ```
-python supervised_finetune.py
+ check src/peft/utils/save_and_load.py , Only comment the line 52 to # #to_return = {k: v for k, v in to_return.items() if (("lora_" in k and adapter_name in k) or ("bias" in k))}
+```
+
+```bash
+python supervised_finetune.py --base_model 'decapoda-research/llama-7b-hf' --data_path 'yahma/alpaca-cleaned' --output_dir './lora-alpaca' --num_epochs 1
 ```
 
 
 ### **Merge PEFT adapter into Model**
 
-```
+```bash
+pip uninstall peft -y
+pip install peft==0.2.0  # 0.3.0.dev0 raise many errors
 python merge_peft_adapter.py
 ```
 
 ---
 
 ## **Topics**
-1. PEFT的版本，目前从git上安装的是 0.3.0.dev0 版本，在merge_peft_adapter的时候有问题，需要切换到peft==0.2.0 (0.3.0.dev0 没有 _get_submodules()这个函数)
-2. 
+1. 第一步SFT之前，切记有个注意事项，需要检查下 安装的peft代码， src/peft/utils/save_and_load.py , 如果 line 52 有这行代码  #to_return = {k: v for k, v in to_return.items() if (("lora_" in k and adapter_name in k) or ("bias" in k))}，需要将其注释掉，否则在finetune完之后，保存不了 adapter model 的参数。切记！
+2. PEFT的版本，目前从git上安装的是 0.3.0.dev0 版本，在merge_peft_adapter的时候有问题，需要切换到peft==0.2.0 (0.3.0.dev0 没有 _get_submodules()这个函数)
+3. train reward model的时候 会发生另一个问题：
 
 ## **Reference**
 utils & templates 来自 [alpaca-lora](https://github.com/tloen/

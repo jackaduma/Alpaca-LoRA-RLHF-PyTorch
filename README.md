@@ -63,8 +63,7 @@ python train_reward_model.py --bf16 False --model_name 'decapoda-research/llama-
 3. train reward model的时候 会发生另一个问题：
 
 ## **Reference**
-utils & templates 来自 [alpaca-lora](https://github.com/tloen/
-alpaca-lora) 。
+utils & templates 来自 [alpaca-lora](https://github.com/tloen/alpaca-lora) 。
 
 requirements 主要是按照 [alpaca-lora](https://github.com/tloen/
 alpaca-lora) 来配环境。

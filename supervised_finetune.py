@@ -11,6 +11,11 @@ import torch
 import transformers
 from datasets import load_dataset
 
+"""
+Unused imports:
+import torch.nn as nn
+import bitsandbytes as bnb
+"""
 
 from peft import (
     LoraConfig,
@@ -46,6 +51,7 @@ def train(
     ],
     # llm hyperparams
     train_on_inputs: bool = True,  # if False, masks out inputs in loss
+    add_eos_token: bool = False,
     group_by_length: bool = False,  # faster, but produces an odd training loss curve
     # wandb params
     wandb_project: str = "",
@@ -82,7 +88,7 @@ def train(
         )
     assert (
         base_model
-    ), "Please specify a --base_model, e.g. --base_model='decapoda-research/llama-7b-hf'"
+    ), "Please specify a --base_model, e.g. --base_model='huggyllama/llama-7b'"
     gradient_accumulation_steps = batch_size // micro_batch_size
 
     prompter = Prompter(prompt_template_name)
@@ -153,8 +159,11 @@ def train(
             user_prompt = prompter.generate_prompt(
                 data_point["instruction"], data_point["input"]
             )
-            tokenized_user_prompt = tokenize(user_prompt, add_eos_token=False)
+            tokenized_user_prompt = tokenize(user_prompt, add_eos_token=add_eos_token)
             user_prompt_len = len(tokenized_user_prompt["input_ids"])
+
+            if add_eos_token:
+                user_prompt_len -= 1
 
             tokenized_full_prompt["labels"] = [
                 -100

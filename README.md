@@ -8,6 +8,7 @@
   - [**Run**](#run)
     - [**Supervised Finetune**](#supervised-finetune)
     - [**Merge PEFT adapter into Model**](#merge-peft-adapter-into-model)
+    - [**Train Reward Model**](#train-reward-model)
   - [**Topics**](#topics)
   - [**Reference**](#reference)
 ---
@@ -46,6 +47,12 @@ python supervised_finetune.py --base_model 'decapoda-research/llama-7b-hf' --dat
 pip uninstall peft -y
 pip install peft==0.2.0  # 0.3.0.dev0 raise many errors
 python merge_peft_adapter.py
+```
+
+### **Train Reward Model**
+
+```
+python train_reward_model.py --bf16 False --model_name 'decapoda-research/llama-7b-hf' --gradient_accumulation_steps 32 --per_device_train_batch_size 1 --train_subset 2000 --eval_subset 100 --local_rank 0
 ```
 
 ---

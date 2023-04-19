@@ -135,7 +135,7 @@ training_args = TrainingArguments(
     remove_unused_columns=False,
     label_names=[],
     # bf16=script_args.bf16,
-    fp16=True,
+    # fp16=True,
     logging_strategy="steps",
     logging_steps=10,
     optim=script_args.optim,
@@ -143,10 +143,12 @@ training_args = TrainingArguments(
 )
 
 # Load the value-head model and tokenizer.
-# tokenizer = AutoTokenizer.from_pretrained(script_args.model_name)
-tokenizer = LlamaTokenizer.from_pretrained(script_args.model_name)
-# config = AutoConfig.from_pretrained(script_args.model_name)
-config = LlamaConfig.from_pretrained(script_args.model_name)
+if "llama" in script_args.model_name:
+    tokenizer = LlamaTokenizer.from_pretrained(script_args.model_name)
+    config = LlamaConfig.from_pretrained(script_args.model_name)
+else:
+    tokenizer = AutoTokenizer.from_pretrained(script_args.model_name, trust_remote_code=True)
+    config = AutoConfig.from_pretrained(script_args.model_name, trust_remote_code=True)
 
 if "llama" in script_args.model_name:
     # required for llama
@@ -172,13 +174,24 @@ print("device_map: ", device_map)
 # model = AutoModelForSequenceClassification.from_pretrained(
 #    script_args.model_name, num_labels=1, torch_dtype=torch.bfloat16
 # )
-model = LlamaForSequenceClassification.from_pretrained(
-    script_args.model_name,
-    num_labels=1,
-    load_in_8bit=True,
-    torch_dtype=torch.float16,
-    device_map=device_map,
-)
+
+if "llama" in script_args.model_name:
+    model = LlamaForSequenceClassification.from_pretrained(
+        script_args.model_name,
+        num_labels=1,
+        load_in_8bit=True,
+        torch_dtype=torch.float16,
+        device_map=device_map,
+    )
+else:
+    model = AutoModelForSequenceClassification.from_pretrained(
+        script_args.model_name,
+        num_labels=1,
+        load_in_8bit=True,
+        torch_dtype=torch.float16,
+        device_map=device_map,
+        trust_remote_code=True,
+    )
 
 model = prepare_model_for_int8_training(model)
 
@@ -327,7 +340,7 @@ trainer = RewardTrainer(
     eval_dataset=eval_dataset,
     compute_metrics=compute_metrics,
     data_collator=RewardDataCollatorWithPadding(
-        tokenizer=tokenizer, max_length=512),
+        tokenizer=tokenizer, max_length=512, pad_to_multiple_of=8),
 )
 
 model.config.use_cache = False

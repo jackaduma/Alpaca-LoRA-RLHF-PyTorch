@@ -27,7 +27,7 @@ cuda==11.8
 ## **Todo List**
 - [x] SFT: Supervised Finetune
 - [x] Merge Adapter into Model
-- [ ] RLHF
+- [x] RLHF
   - [x] train reward model
   - [x] tuning with RL
 

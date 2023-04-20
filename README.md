@@ -12,7 +12,7 @@
     - [**Train Reward Model**](#train-reward-model)
       - [**Merge Reward adapter into Model**](#merge-reward-adapter-into-model)
     - [**Tuning LM with PPO**](#tuning-lm-with-ppo)
-  - [**Topics**](#topics)
+  - [**Notes**](#notes)
   - [**Reference**](#reference)
 ---
 
@@ -72,7 +72,7 @@ python tuning_lm_with_rl.py --model_name './lora-alpaca-adapter-merged' --reward
 
 ---
 
-## **Topics**
+## **Notes**
 1. 第一步SFT之前，切记有个注意事项，需要检查下 安装的peft代码， src/peft/utils/save_and_load.py , 如果 line 52 有这行代码  #to_return = {k: v for k, v in to_return.items() if (("lora_" in k and adapter_name in k) or ("bias" in k))}，需要将其注释掉，否则在finetune完之后，保存不了 adapter model 的参数。切记！
 2. PEFT的版本，目前从git上安装的是 0.3.0.dev0 版本，在merge_peft_adapter的时候有问题，需要切换到peft==0.2.0 (0.3.0.dev0 没有 _get_submodules()这个函数)
 3. train reward model的时候 会发生另一个问题： ValueError: weight is on the meta device, we need a `value` to put in on 0. 需要参看 transformer 在github上的最新代码，我在发现这个问题的时候，隔天发现在transformer的github上 8小时前才刚刚修复了这个问题。

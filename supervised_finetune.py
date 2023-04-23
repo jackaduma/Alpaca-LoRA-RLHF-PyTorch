@@ -9,7 +9,6 @@ from typing import List
 import fire
 import torch
 import transformers
-from datasets import load_dataset
 
 """
 Unused imports:
@@ -26,7 +25,7 @@ from peft import (
 )
 from transformers import LlamaForCausalLM, LlamaTokenizer
 
-from utils.prompter import Prompter
+from data_loader import sft_dataloader
 
 
 def train(
@@ -58,8 +57,10 @@ def train(
     wandb_run_name: str = "",
     wandb_watch: str = "",  # options: false | gradients | all
     wandb_log_model: str = "",  # options: false | true
-    resume_from_checkpoint: str = None,  # either training checkpoint or final adapter
-    prompt_template_name: str = "alpaca",  # The prompt template to use, will default to alpaca.
+    # either training checkpoint or final adapter
+    resume_from_checkpoint: str = None,
+    # The prompt template to use, will default to alpaca.
+    prompt_template_name: str = "alpaca",
 ):
     if int(os.environ.get("LOCAL_RANK", 0)) == 0:
         print(
@@ -90,8 +91,6 @@ def train(
         base_model
     ), "Please specify a --base_model, e.g. --base_model='huggyllama/llama-7b'"
     gradient_accumulation_steps = batch_size // micro_batch_size
-
-    prompter = Prompter(prompt_template_name)
 
     device_map = "auto"
     world_size = int(os.environ.get("WORLD_SIZE", 1))
@@ -126,52 +125,6 @@ def train(
     )
     tokenizer.padding_side = "left"  # Allow batched inference
 
-    def tokenize(prompt, add_eos_token=True):
-        # there's probably a way to do this with the tokenizer settings
-        # but again, gotta move fast
-        result = tokenizer(
-            prompt,
-            truncation=True,
-            max_length=cutoff_len,
-            padding=False,
-            return_tensors=None,
-        )
-        if (
-            result["input_ids"][-1] != tokenizer.eos_token_id
-            and len(result["input_ids"]) < cutoff_len
-            and add_eos_token
-        ):
-            result["input_ids"].append(tokenizer.eos_token_id)
-            result["attention_mask"].append(1)
-
-        result["labels"] = result["input_ids"].copy()
-
-        return result
-
-    def generate_and_tokenize_prompt(data_point):
-        full_prompt = prompter.generate_prompt(
-            data_point["instruction"],
-            data_point["input"],
-            data_point["output"],
-        )
-        tokenized_full_prompt = tokenize(full_prompt)
-        if not train_on_inputs:
-            user_prompt = prompter.generate_prompt(
-                data_point["instruction"], data_point["input"]
-            )
-            tokenized_user_prompt = tokenize(user_prompt, add_eos_token=add_eos_token)
-            user_prompt_len = len(tokenized_user_prompt["input_ids"])
-
-            if add_eos_token:
-                user_prompt_len -= 1
-
-            tokenized_full_prompt["labels"] = [
-                -100
-            ] * user_prompt_len + tokenized_full_prompt["labels"][
-                user_prompt_len:
-            ]  # could be sped up, probably
-        return tokenized_full_prompt
-
     model = prepare_model_for_int8_training(model)
 
     config = LoraConfig(
@@ -183,11 +136,6 @@ def train(
         task_type="CAUSAL_LM",
     )
     model = get_peft_model(model, config)
-
-    if data_path.endswith(".json") or data_path.endswith(".jsonl"):
-        data = load_dataset("json", data_files=data_path)
-    else:
-        data = load_dataset(data_path)
 
     if resume_from_checkpoint:
         # Check the available weights and load them
@@ -212,21 +160,12 @@ def train(
         else:
             print(f"Checkpoint {checkpoint_name} not found")
 
-    model.print_trainable_parameters()  # Be more transparent about the % of trainable params.
+    # Be more transparent about the % of trainable params.
+    model.print_trainable_parameters()
 
-    if val_set_size > 0:
-        train_val = data["train"].train_test_split(
-            test_size=val_set_size, shuffle=True, seed=42
-        )
-        train_data = (
-            train_val["train"].shuffle().map(generate_and_tokenize_prompt)
-        )
-        val_data = (
-            train_val["test"].shuffle().map(generate_and_tokenize_prompt)
-        )
-    else:
-        train_data = data["train"].shuffle().map(generate_and_tokenize_prompt)
-        val_data = None
+    data_loader = sft_dataloader.SFTDataLoader(
+        data_path, cutoff_len, val_set_size, train_on_inputs, add_eos_token, prompt_template_name, tokenizer)
+    train_data, val_data = data_loader.load_data()
 
     if not ddp and torch.cuda.device_count() > 1:
         # keeps Trainer from trying its own DataParallelism when more than 1 gpu is available
@@ -265,11 +204,13 @@ def train(
     model.config.use_cache = False
 
     old_state_dict = model.state_dict
+    print("old_state_dict: ", old_state_dict())
     model.state_dict = (
         lambda self, *_, **__: get_peft_model_state_dict(
             self, old_state_dict()
         )
     ).__get__(model, type(model))
+    print("model.state_dict: ", model.state_dict)
 
     if torch.__version__ >= "2" and sys.platform != "win32":
         model = torch.compile(model)
